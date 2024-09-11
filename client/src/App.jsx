@@ -133,17 +133,14 @@ const App = () => {
     peer.signal(callerSignalData); // Respond to the caller's signal
   };
 
-  useEffect(() => {
-    if (!myVideoStream) return;
-
-    handleRequestUsers();
+  const handleCall =()=>{
     if(callerID) startCalling(callerID);
-  }, [myVideoStream, callerID]);
+  }
 
   const handleRequestUsers = () => {
     socket.emit("getAllConnectedUsers");
   };
-
+  
   return (
     <div className="flex flex-col justify-center items-center h-screen w-screen text-blue-500">
       <h2 className="mb-6">Video Call demo using simple-peer</h2>
@@ -169,6 +166,8 @@ const App = () => {
       >
         Show Users List
       </button>
+      <input type="text" value={callerID} onChange={(e)=> setCallerID(e.target.value)} />
+      <button onClick={()=>{handleCall}}>Call User</button>
     </div>
   );
 };
