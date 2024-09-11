@@ -6,12 +6,15 @@ const App = () => {
   const [mySocketID, setMySocketID] = useState("");
   const [callerID, setCallerID] = useState("");
   const [myVideoStream, setMyVideoStream] = useState(null);
+  const [connectedUsers, setConnectedUsers] = useState([]);
+  const [isInCall, setIsInCall] = useState(false);
   const localVideo = useRef(null);
   const remoteVideo = useRef(null);
+  const peerRef = useRef(null);
 
   const socket = useMemo(() => {
     return io("http://localhost:8000", {
-      reconnectionAttempts: 2,
+      reconnectionAttempts: 5,
       reconnectionDelay: 1000,
     });
   }, []);
@@ -26,13 +29,15 @@ const App = () => {
 
     socket.on("AllConnectedUsers", ({ users }) => {
       console.log("All connected users: ", users);
+      setConnectedUsers(users);
     });
 
-    socket.on("incommingCall", acceptCall); // Accept incoming call
+    socket.on("incommingCall", handleIncomingCall);
 
     return () => {
       socket.off("YourSocketId");
-      socket.off("incommingCall", acceptCall);
+      socket.off("AllConnectedUsers");
+      socket.off("incommingCall", handleIncomingCall);
     };
   }, [socket]);
 
@@ -41,7 +46,7 @@ const App = () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
-          audio: false,
+          audio: true,
         });
         setMyVideoStream(stream);
         if (localVideo.current) {
@@ -54,30 +59,29 @@ const App = () => {
     getLocalVideoStream();
   }, []);
 
-  const startCalling = (socketID) => {
-    if (!myVideoStream) return; // Ensure video stream is ready
-
-    const peer = new Peer({
-      initiator: true,
+  const createPeer = (initiator, stream) => {
+    return new Peer({
+      initiator,
       trickle: false,
-      stream: myVideoStream,
+      stream,
       config: {
         iceServers: [
-          {
-            urls: "stun:numb.viagenie.ca",
-            username: "sultan1640@gmail.com",
-            credential: "98376683",
-          },
-          {
-            urls: "turn:numb.viagenie.ca",
-            username: "sultan1640@gmail.com",
-            credential: "98376683",
-          },
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:global.stun.twilio.com:3478?transport=udp" },
         ],
       },
     });
+  };
+
+  const startCalling = (socketID) => {
+    if (!myVideoStream) return;
+    console.log("Starting call to:", socketID);
+
+    const peer = createPeer(true, myVideoStream);
+    peerRef.current = peer;
 
     peer.on("signal", (data) => {
+      console.log("Signaling to peer:", socketID);
       socket.emit("callUser", {
         userToCall: socketID,
         signalData: data,
@@ -85,89 +89,147 @@ const App = () => {
       });
     });
 
-    peer.on("stream", (stream) => {
-      if (remoteVideo.current) {
-        remoteVideo.current.srcObject = stream;
-      }
-    });
+    peer.on("stream", handleRemoteStream);
 
     socket.on("callAccepted", (signalData) => {
-      peer.signal(signalData); // Signal when the call is accepted
+      console.log("Call accepted, signaling peer");
+      peer.signal(signalData);
+      setIsInCall(true);
     });
+
+    peer.on("error", handlePeerError);
   };
 
-  const acceptCall = ({ callerSignalData, from }) => {
+  const handleIncomingCall = ({ callerSignalData, from }) => {
     if (!myVideoStream) return;
-    const peer = new Peer({
-      trickle: false,
-      stream: myVideoStream,
-      config: {
-        iceServers: [
-          {
-            urls: "stun:numb.viagenie.ca",
-            username: "sultan1640@gmail.com",
-            credential: "98376683",
-          },
-          {
-            urls: "turn:numb.viagenie.ca",
-            username: "sultan1640@gmail.com",
-            credential: "98376683",
-          },
-        ],
-      },
-    });
-    setCallerID(from)
+    console.log("Incoming call from:", from);
+
+    const peer = createPeer(false, myVideoStream);
+    peerRef.current = peer;
+
     peer.on("signal", (data) => {
+      console.log("Signaling back to caller");
       socket.emit("acceptingCall", {
         acceptingCallFrom: from,
         signalData: data,
       });
     });
 
-    peer.on("stream", (stream) => {
-      if (remoteVideo.current) {
-        remoteVideo.current.srcObject = stream;
-      }
-    });
+    peer.on("stream", handleRemoteStream);
 
-    peer.signal(callerSignalData); // Respond to the caller's signal
+    peer.on("error", handlePeerError);
+
+    peer.signal(callerSignalData);
+    setCallerID(from);
+    setIsInCall(true);
   };
 
-  const handleCall =()=>{
-    if(callerID) startCalling(callerID);
-  }
+  const handleRemoteStream = (stream) => {
+    console.log("Received remote stream");
+    if (remoteVideo.current) {
+      remoteVideo.current.srcObject = stream;
+    }
+  };
+
+  const handlePeerError = (err) => {
+    console.error("Peer connection error:", err);
+    endCall();
+  };
+
+  const handleCall = () => {
+    if (callerID && !isInCall) {
+      startCalling(callerID);
+    }
+  };
+
+  const endCall = () => {
+    if (peerRef.current) {
+      peerRef.current.destroy();
+    }
+    setIsInCall(false);
+    setCallerID("");
+    if (remoteVideo.current) {
+      remoteVideo.current.srcObject = null;
+    }
+  };
 
   const handleRequestUsers = () => {
     socket.emit("getAllConnectedUsers");
   };
-  
+
+  useEffect(() => {
+    handleRequestUsers();
+    const interval = setInterval(handleRequestUsers, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="flex flex-col justify-center items-center h-screen w-screen text-blue-500">
       <h2 className="mb-6">Video Call demo using simple-peer</h2>
-      <div className="flex">
+      <div className="flex space-x-4">
         <div className="flex flex-col justify-center items-center">
           <p>My Video</p>
           <video
             id="localVideo"
             autoPlay
             playsInline
+            muted
             ref={localVideo}
-            className="w-80 h-80"
+            className="w-80 h-60 bg-gray-200"
           />
         </div>
         <div className="flex flex-col justify-center items-center">
           <p>Remote Video</p>
-          <video id="remoteVideo" autoPlay playsInline ref={remoteVideo} />
+          <video
+            id="remoteVideo"
+            autoPlay
+            playsInline
+            ref={remoteVideo}
+            className="w-80 h-60 bg-gray-200"
+          />
         </div>
       </div>
-      <button
-        onClick={handleRequestUsers}
-        className="bg-blue-300 px-4 py-2 rounded-lg"
-      >
-        Show Users List
-      </button>
-      <input type="text" value={callerID} onChange={(e)=> setCallerID(e.target.value)} />
-      <button onClick={()=>{handleCall}}>Call User</button>
+      <div className="mt-4">
+        <h3>Connected Users:</h3>
+        <ul>
+          {connectedUsers.map((user) => (
+            <li key={user} className="flex items-center justify-between mb-2">
+              <span>{user}</span>
+              <button
+                onClick={() => setCallerID(user)}
+                className="bg-blue-500 text-white px-2 py-1 rounded"
+                disabled={isInCall}
+              >
+                Select
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="mt-4">
+        <input
+          type="text"
+          value={callerID}
+          onChange={(e) => setCallerID(e.target.value)}
+          placeholder="Enter caller ID"
+          className="px-2 py-1 border rounded"
+        />
+        <button
+          onClick={handleCall}
+          className="ml-2 bg-green-500 text-white px-4 py-2 rounded"
+          disabled={isInCall || !callerID}
+        >
+          Call User
+        </button>
+      </div>
+      {isInCall && (
+        <button
+          onClick={endCall}
+          className="mt-4 bg-red-500 text-white px-4 py-2 rounded"
+        >
+          End Call
+        </button>
+      )}
     </div>
   );
 };

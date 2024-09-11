@@ -11,6 +11,7 @@ app.use(
     credentials: true,
   })
 );
+
 const PORT = process.env.PORT || 8000;
 const server = http.createServer(app);
 
@@ -20,32 +21,48 @@ const io = new Server(server, {
     credentials: true,
   },
 });
-let Users = []; // [ socket_id1, socket_id2,socket_id3,...]
+
+const Users = new Set();
+
+const emitUpdatedUserList = () => {
+  const userList = Array.from(Users);
+  io.emit("AllConnectedUsers", { users: userList });
+};
+
 io.on("connection", (socket) => {
-  console.log("New User connected");
+  console.log("New User connected:", socket.id);
   socket.emit("YourSocketId", { socketID: socket.id });
-  Users.push(socket.id);
+  Users.add(socket.id);
+  emitUpdatedUserList();
+
   socket.on("getAllConnectedUsers", () => {
-    const userData = Users.filter((user) => user !== socket.id);
+    const userData = Array.from(Users).filter((user) => user !== socket.id);
     socket.emit("AllConnectedUsers", { users: userData });
   });
+
   socket.on("callUser", ({ userToCall, signalData }) => {
-    socket
-      .to(userToCall)
-      .emit("incommingCall", { signalData: signalData, from: socket.id });
+    console.log(`User ${socket.id} is calling ${userToCall}`);
+    io.to(userToCall).emit("incommingCall", { signalData, from: socket.id });
   });
+
   socket.on("acceptingCall", ({ acceptingCallFrom, signalData }) => {
-    socket
-     .to(acceptingCallFrom)
-     .emit("callAccepted", { signalData: signalData, from: socket.id });
+    console.log(
+      `User ${socket.id} is accepting call from ${acceptingCallFrom}`
+    );
+    io.to(acceptingCallFrom).emit("callAccepted", {
+      signalData,
+      from: socket.id,
+    });
   });
+
   socket.on("disconnect", () => {
-    console.log("User disconnected");
-     Users = Users.filter((user) => user !== socket.id);
+    console.log("User disconnected:", socket.id);
+    Users.delete(socket.id);
+    emitUpdatedUserList();
   });
 });
 
 server.listen(PORT, (err) => {
   if (err) throw err;
-  console.log(`Server is running on port http://localhost:${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
