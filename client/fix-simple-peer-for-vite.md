@@ -65,7 +65,7 @@ export default defineConfig({
   plugins: [
     react(),
     // Automatically polyfill core Node.js modules like `process` and `Buffer`
-    nodePolyfills(),
+    nodePolyfills({}),
   ],
   define: {
     global: 'globalThis',
