@@ -4,8 +4,8 @@ import Peer from "simple-peer";
 
 const App = () => {
   const [mySocketID, setMySocketID] = useState("");
+  const [callerID, setCallerID] = useState("");
   const [myVideoStream, setMyVideoStream] = useState(null);
-  const [allConnectedUsers, setAllConnectedUsers] = useState([]);
   const localVideo = useRef(null);
   const remoteVideo = useRef(null);
 
@@ -15,24 +15,27 @@ const App = () => {
       reconnectionDelay: 1000,
     });
   }, []);
+
   useEffect(() => {
     if (!socket) return;
+
     socket.on("YourSocketId", ({ socketID }) => {
       console.log("Your socket ID is: ", socketID);
       setMySocketID(socketID);
     });
+
     socket.on("AllConnectedUsers", ({ users }) => {
-      console.log("All connected users: ");
-      console.log(users);
-      setAllConnectedUsers(users);
+      console.log("All connected users: ", users);
     });
-    socket.on("incommingCall", acceptCall); // when call is incomming accept it.
+
+    socket.on("incommingCall", acceptCall); // Accept incoming call
+
     return () => {
       socket.off("YourSocketId");
-      socket.off("AllConnectedUsers");
       socket.off("incommingCall", acceptCall);
     };
   }, [socket]);
+
   useEffect(() => {
     const getLocalVideoStream = async () => {
       try {
@@ -50,11 +53,14 @@ const App = () => {
     };
     getLocalVideoStream();
   }, []);
+
   const startCalling = (socketID) => {
+    if (!myVideoStream) return; // Ensure video stream is ready
+
     const peer = new Peer({
       initiator: true,
       trickle: false,
-      stream: localVideo.current?.srcObject,
+      stream: myVideoStream,
       config: {
         iceServers: [
           {
@@ -70,26 +76,31 @@ const App = () => {
         ],
       },
     });
+
     peer.on("signal", (data) => {
       socket.emit("callUser", {
         userToCall: socketID,
-        singnalData: data,
+        signalData: data,
         from: mySocketID,
       });
     });
+
     peer.on("stream", (stream) => {
       if (remoteVideo.current) {
         remoteVideo.current.srcObject = stream;
       }
     });
-    socket.on("callAccepted", () => {
-      peer.signal(signalData); // uska signalData save kar raha hai
+
+    socket.on("callAccepted", (signalData) => {
+      peer.signal(signalData); // Signal when the call is accepted
     });
   };
-  const acceptCall = ({ callerSingnalData: signalData, from }) => {
+
+  const acceptCall = ({ callerSignalData, from }) => {
+    if (!myVideoStream) return;
     const peer = new Peer({
       trickle: false,
-      stream: localVideo.current?.srcObject,
+      stream: myVideoStream,
       config: {
         iceServers: [
           {
@@ -105,36 +116,40 @@ const App = () => {
         ],
       },
     });
+    setCallerID(from)
     peer.on("signal", (data) => {
       socket.emit("acceptingCall", {
         acceptingCallFrom: from,
-        singnalData: data, // apna signalData bhej raha hai
+        signalData: data,
       });
     });
+
     peer.on("stream", (stream) => {
       if (remoteVideo.current) {
         remoteVideo.current.srcObject = stream;
       }
     });
-    peer.signal(callerSingnalData); // uska signalData save kar raha hai
+
+    peer.signal(callerSignalData); // Respond to the caller's signal
   };
+
   useEffect(() => {
-    if (!socket || !myVideoStream) return;
+    if (!myVideoStream) return;
+
     handleRequestUsers();
-    if(allConnectedUsers.length===0) return;
-    allConnectedUsers.forEach(user=>{
-      startCalling(user);
-    })
-  }, [socket, myVideoStream,allConnectedUsers]);
+    if(callerID) startCalling(callerID);
+  }, [myVideoStream, callerID]);
+
   const handleRequestUsers = () => {
     socket.emit("getAllConnectedUsers");
   };
+
   return (
     <div className="flex flex-col justify-center items-center h-screen w-screen text-blue-500">
-      <h2 className="mb-6 ">Video Call demo using simple-peer</h2>
+      <h2 className="mb-6">Video Call demo using simple-peer</h2>
       <div className="flex">
         <div className="flex flex-col justify-center items-center">
-          <p> My Video</p>
+          <p>My Video</p>
           <video
             id="localVideo"
             autoPlay
@@ -144,13 +159,13 @@ const App = () => {
           />
         </div>
         <div className="flex flex-col justify-center items-center">
-          <p> Remote Video</p>
+          <p>Remote Video</p>
           <video id="remoteVideo" autoPlay playsInline ref={remoteVideo} />
         </div>
       </div>
       <button
         onClick={handleRequestUsers}
-        className=" bg-blue-300 px-4 py-2 rounded-lg"
+        className="bg-blue-300 px-4 py-2 rounded-lg"
       >
         Show Users List
       </button>
