@@ -76,9 +76,9 @@ const App = () => {
         stream: stream,
         config: {
           iceServers: [
-            {
-              urls: "stun:stun.relay.metered.ca:80",
-            },
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "stun:stun.l.google.com:5349" },
+            { urls: "stun:stun1.l.google.com:3478" },
             {
               urls: "turn:global.relay.metered.ca:80",
               username: "93588a7d1e50ee58e2a751a7",
@@ -142,9 +142,9 @@ const App = () => {
       stream: stream,
       config: {
         iceServers: [
-          {
-            urls: "stun:stun.relay.metered.ca:80",
-          },
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun.l.google.com:5349" },
+          { urls: "stun:stun1.l.google.com:3478" },
           {
             urls: "turn:global.relay.metered.ca:80",
             username: "93588a7d1e50ee58e2a751a7",
