@@ -59,60 +59,57 @@ const App = () => {
     getLocalVideoStream();
   }, []);
 
-
-  const startCalling = (socketID) => {
-    if (!myVideoStream) return;
+  const startCalling = async (socketID) => {
     console.log("Starting call to:", socketID);
-
-    const peer = new Peer({
-      initiator:true,
-      trickle: false,
-      stream:myVideoStream,
-      config: {
-        iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
-          { urls: "stun:global.stun.twilio.com:3478?transport=udp" },
-        ],
-      },
-    });
-    peerRef.current = peer;
-
-    peer.on("signal", (data) => {
-      console.log(data);
-      console.log("Signaling to peer:", socketID);
-      socket.emit("callUser", {
-        userToCall: socketID,
-        signalData: data,
-        from: mySocketID,
+    // Fetch media stream using getUserMedia
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
       });
-    });
+      const peer = new Peer({
+        initiator: true,
+        trickle: false,
+        stream: stream,
+      });
+      peerRef.current = peer;
 
-    peer.on("stream", handleRemoteStream);
+      peer.on("signal", (data) => {
+        console.log(data);
+        console.log("Signaling to peer:", socketID);
+        socket.emit("callUser", {
+          userToCall: socketID,
+          signalData: data,
+          from: mySocketID,
+        });
+      });
 
-    socket.on("callAccepted", (signalData) => {
-      console.log("Call accepted, signaling peer");
-      peer.signal(signalData);
-      console.log(signalData);
-      setIsInCall(true);
-    });
+      peer.on("stream", handleRemoteStream);
 
-    peer.on("error", handlePeerError);
+      socket.on("callAccepted", ({ signalData }) => {
+        console.log("Call accepted, signaling peer");
+        peer.signal(signalData);
+        console.log(signalData);
+        setIsInCall(true);
+      });
+
+      peer.on("error", handlePeerError);
+    } catch (error) {
+      console.error("Error getting user media", error);
+    }
   };
 
-  const handleIncomingCall = ({ callerSignalData, from }) => {
-    if (!myVideoStream) return;
+  const handleIncomingCall = async ({ signalData, from }) => {
     console.log("Incoming call from:", from);
-
+    // Fetch media stream using getUserMedia
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
+    });
     const peer = new Peer({
-      initiator:false,
+      initiator: false,
       trickle: false,
-      streamL:myVideoStream,
-      config: {
-        iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
-          { urls: "stun:global.stun.twilio.com:3478?transport=udp" },
-        ],
-      },
+      stream: stream,
     });
     peerRef.current = peer;
 
@@ -127,8 +124,8 @@ const App = () => {
     peer.on("stream", handleRemoteStream);
 
     peer.on("error", handlePeerError);
-
-    peer.signal(callerSignalData);
+    console.log("Incomming call: " + signalData);
+    peer.signal(signalData);
     setCallerID(from);
     setIsInCall(true);
   };
