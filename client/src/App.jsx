@@ -3,6 +3,8 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { io } from "socket.io-client";
 import Peer from "simple-peer";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 const App = () => {
   const [mySocketID, setMySocketID] = useState("");
   const [callerID, setCallerID] = useState("");
@@ -14,7 +16,7 @@ const App = () => {
   const peerRef = useRef(null);
 
   const socket = useMemo(() => {
-    return io("http://localhost:8000", {
+    return io(BACKEND_URL, {
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
     });
@@ -72,6 +74,20 @@ const App = () => {
         initiator: true,
         trickle: false,
         stream: stream,
+        config: {
+          iceServers: [
+            {
+              urls: "stun:numb.viagenie.ca",
+              username: "sultan1640@gmail.com",
+              credential: "98376683",
+            },
+            {
+              urls: "turn:numb.viagenie.ca",
+              username: "sultan1640@gmail.com",
+              credential: "98376683",
+            },
+          ],
+        },
       });
       peerRef.current = peer;
 
@@ -111,6 +127,20 @@ const App = () => {
       initiator: false,
       trickle: false,
       stream: stream,
+      config: {
+        iceServers: [
+          {
+            urls: "stun:numb.viagenie.ca",
+            username: "sultan1640@gmail.com",
+            credential: "98376683",
+          },
+          {
+            urls: "turn:numb.viagenie.ca",
+            username: "sultan1640@gmail.com",
+            credential: "98376683",
+          },
+        ],
+      },
     });
     peerRef.current = peer;
 
@@ -191,6 +221,7 @@ const App = () => {
             id="remoteVideo"
             autoPlay
             playsInline
+            muted
             ref={remoteVideo}
             className="w-80 h-60 bg-gray-200"
           />
