@@ -59,11 +59,15 @@ const App = () => {
     getLocalVideoStream();
   }, []);
 
-  const createPeer = (initiator, stream) => {
-    return new Peer({
-      initiator,
+
+  const startCalling = (socketID) => {
+    if (!myVideoStream) return;
+    console.log("Starting call to:", socketID);
+
+    const peer = new Peer({
+      initiator:true,
       trickle: false,
-      stream,
+      stream:myVideoStream,
       config: {
         iceServers: [
           { urls: "stun:stun.l.google.com:19302" },
@@ -71,16 +75,10 @@ const App = () => {
         ],
       },
     });
-  };
-
-  const startCalling = (socketID) => {
-    if (!myVideoStream) return;
-    console.log("Starting call to:", socketID);
-
-    const peer = createPeer(true, myVideoStream);
     peerRef.current = peer;
 
     peer.on("signal", (data) => {
+      console.log(data);
       console.log("Signaling to peer:", socketID);
       socket.emit("callUser", {
         userToCall: socketID,
@@ -94,6 +92,7 @@ const App = () => {
     socket.on("callAccepted", (signalData) => {
       console.log("Call accepted, signaling peer");
       peer.signal(signalData);
+      console.log(signalData);
       setIsInCall(true);
     });
 
@@ -104,7 +103,17 @@ const App = () => {
     if (!myVideoStream) return;
     console.log("Incoming call from:", from);
 
-    const peer = createPeer(false, myVideoStream);
+    const peer = new Peer({
+      initiator:false,
+      trickle: false,
+      streamL:myVideoStream,
+      config: {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:global.stun.twilio.com:3478?transport=udp" },
+        ],
+      },
+    });
     peerRef.current = peer;
 
     peer.on("signal", (data) => {
