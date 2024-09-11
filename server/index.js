@@ -23,11 +23,21 @@ const io = new Server(server, {
 let Users = []; // [ socket_id1, socket_id2,socket_id3,...]
 io.on("connection", (socket) => {
   console.log("New User connected");
-  socket.emit("YourSocketId", {socketID: socket.id});
+  socket.emit("YourSocketId", { socketID: socket.id });
   Users.push(socket.id);
-  socket.on("getAllConnectedUsers",()=>{
-    const userData = Users.filter(user=> user!==socket.id);
+  socket.on("getAllConnectedUsers", () => {
+    const userData = Users.filter((user) => user !== socket.id);
     socket.emit("AllConnectedUsers", { users: userData });
+  });
+  socket.on("callUser", ({ userToCall, signalData }) => {
+    socket
+      .to(userToCall)
+      .emit("incommingCall", { signalData: signalData, from: socket.id });
+  });
+  socket.on("acceptingCall", ({ acceptingCallFrom, signalData }) => {
+    socket
+     .to(acceptingCallFrom)
+     .emit("callAccepted", { signalData: signalData, from: socket.id });
   });
   socket.on("disconnect", () => {
     console.log("User disconnected");
