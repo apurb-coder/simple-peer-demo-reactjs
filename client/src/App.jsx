@@ -11,7 +11,7 @@ const App = () => {
 
   const socket = useMemo(() => {
     return io("http://localhost:8000", {
-      reconnectionAttempts: Infinity,
+      reconnectionAttempts: 2,
       reconnectionDelay: 1000,
     });
   }, []);
