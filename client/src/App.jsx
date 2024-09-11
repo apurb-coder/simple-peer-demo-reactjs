@@ -77,14 +77,27 @@ const App = () => {
         config: {
           iceServers: [
             {
-              urls: "stun:numb.viagenie.ca",
-              username: "sultan1640@gmail.com",
-              credential: "98376683",
+              urls: "stun:stun.relay.metered.ca:80",
             },
             {
-              urls: "turn:numb.viagenie.ca",
-              username: "sultan1640@gmail.com",
-              credential: "98376683",
+              urls: "turn:global.relay.metered.ca:80",
+              username: "93588a7d1e50ee58e2a751a7",
+              credential: "+wxGMnvwQNLoyJoR",
+            },
+            {
+              urls: "turn:global.relay.metered.ca:80?transport=tcp",
+              username: "93588a7d1e50ee58e2a751a7",
+              credential: "+wxGMnvwQNLoyJoR",
+            },
+            {
+              urls: "turn:global.relay.metered.ca:443",
+              username: "93588a7d1e50ee58e2a751a7",
+              credential: "+wxGMnvwQNLoyJoR",
+            },
+            {
+              urls: "turns:global.relay.metered.ca:443?transport=tcp",
+              username: "93588a7d1e50ee58e2a751a7",
+              credential: "+wxGMnvwQNLoyJoR",
             },
           ],
         },
@@ -130,14 +143,27 @@ const App = () => {
       config: {
         iceServers: [
           {
-            urls: "stun:numb.viagenie.ca",
-            username: "sultan1640@gmail.com",
-            credential: "98376683",
+            urls: "stun:stun.relay.metered.ca:80",
           },
           {
-            urls: "turn:numb.viagenie.ca",
-            username: "sultan1640@gmail.com",
-            credential: "98376683",
+            urls: "turn:global.relay.metered.ca:80",
+            username: "93588a7d1e50ee58e2a751a7",
+            credential: "+wxGMnvwQNLoyJoR",
+          },
+          {
+            urls: "turn:global.relay.metered.ca:80?transport=tcp",
+            username: "93588a7d1e50ee58e2a751a7",
+            credential: "+wxGMnvwQNLoyJoR",
+          },
+          {
+            urls: "turn:global.relay.metered.ca:443",
+            username: "93588a7d1e50ee58e2a751a7",
+            credential: "+wxGMnvwQNLoyJoR",
+          },
+          {
+            urls: "turns:global.relay.metered.ca:443?transport=tcp",
+            username: "93588a7d1e50ee58e2a751a7",
+            credential: "+wxGMnvwQNLoyJoR",
           },
         ],
       },
