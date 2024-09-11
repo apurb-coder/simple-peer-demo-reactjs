@@ -13,6 +13,7 @@ export default defineConfig({
     nodePolyfills({}),
   ],
   define: {
-    global: {},
+    global: "globalThis",
   },
+  resolve: { alias: { "readable-stream": "vite-compatible-readable-stream" } },
 });
