@@ -5,6 +5,7 @@ import Peer from "simple-peer";
 const App = () => {
   const [mySocketID, setMySocketID] = useState("");
   const [myVideoStream, setMyVideoStream] = useState(null);
+  const [allConnectedUsers, setAllConnectedUsers] = useState([]);
   const localVideo = useRef(null);
   const remoteVideo = useRef(null);
 
@@ -23,10 +24,12 @@ const App = () => {
     socket.on("AllConnectedUsers", ({ users }) => {
       console.log("All connected users: ");
       console.log(users);
+      setAllConnectedUsers(users);
     });
-    socket.on("incommingCall", acceptCall);
+    socket.on("incommingCall", acceptCall); // when call is incomming accept it.
     return () => {
       socket.off("YourSocketId");
+      socket.off("AllConnectedUsers");
       socket.off("incommingCall", acceptCall);
     };
   }, [socket]);
@@ -79,7 +82,7 @@ const App = () => {
         remoteVideo.current.srcObject = stream;
       }
     });
-    socket.on("callAccepted", ()=>{
+    socket.on("callAccepted", () => {
       peer.signal(signalData); // uska signalData save kar raha hai
     });
   };
@@ -115,6 +118,14 @@ const App = () => {
     });
     peer.signal(callerSingnalData); // uska signalData save kar raha hai
   };
+  useEffect(() => {
+    if (!socket || !myVideoStream) return;
+    handleRequestUsers();
+    if(allConnectedUsers.length===0) return;
+    allConnectedUsers.forEach(user=>{
+      startCalling(user);
+    })
+  }, [socket, myVideoStream,allConnectedUsers]);
   const handleRequestUsers = () => {
     socket.emit("getAllConnectedUsers");
   };
