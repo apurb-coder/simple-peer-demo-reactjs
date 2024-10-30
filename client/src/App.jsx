@@ -105,7 +105,9 @@ const App = () => {
       });
       peerRef.current = peer;
 
+      // Generate the signal data
       peer.on("signal", (data) => {
+        // data: contains the signal data to send
         console.log(data);
         console.log("Signaling to peer:", socketID);
         socket.emit("callUser", {
@@ -119,6 +121,7 @@ const App = () => {
 
       socket.on("callAccepted", ({ signalData }) => {
         console.log("Call accepted, signaling peer");
+        // store the signaling data received from the remote peer
         peer.signal(signalData);
         console.log(signalData);
         setIsInCall(true);
