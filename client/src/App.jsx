@@ -1,4 +1,4 @@
-import "./fix-simple-peer.js"
+import "./fix-simple-peer.js";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { io } from "socket.io-client";
 import Peer from "simple-peer";
@@ -52,6 +52,7 @@ const App = () => {
           audio: true,
         });
         setMyVideoStream(stream);
+        window.localStream = stream;
         if (localVideo.current) {
           localVideo.current.srcObject = stream;
         }
@@ -72,8 +73,8 @@ const App = () => {
       });
       const peer = new Peer({
         initiator: true,
-        trickle: false,
-        stream: stream,
+        trickle: true,
+        stream: window.localStream,
         config: {
           iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
@@ -138,8 +139,8 @@ const App = () => {
     });
     const peer = new Peer({
       initiator: false,
-      trickle: false,
-      stream: stream,
+      trickle: true,
+      stream: window.localStream,
       config: {
         iceServers: [
           { urls: "stun:stun.l.google.com:19302" },

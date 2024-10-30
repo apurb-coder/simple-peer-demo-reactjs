@@ -18,13 +18,13 @@ export default defineConfig({
     global: "globalThis",
   },
   resolve: { alias: { "readable-stream": "vite-compatible-readable-stream" } },
-  server: {
-    https: {
-      key: fs.readFileSync(
-        path.resolve(__dirname, "../cert/localhost+2-key.pem")
-      ),
-      cert: fs.readFileSync(path.resolve(__dirname, "../cert/localhost+2.pem")),
-    },
-    // Optionally specify other server options here
-  },
+  // server: {
+  //   https: {
+  //     key: fs.readFileSync(
+  //       path.resolve(__dirname, "../cert/localhost+2-key.pem")
+  //     ),
+  //     cert: fs.readFileSync(path.resolve(__dirname, "../cert/localhost+2.pem")),
+  //   },
+  //   // Optionally specify other server options here
+  // },
 });

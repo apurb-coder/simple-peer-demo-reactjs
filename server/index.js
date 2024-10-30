@@ -17,7 +17,7 @@ app.use(
 );
 
 const PORT = process.env.PORT || 8000;
-// const server = http.createServer(app);
+const server = http.createServer(app);
 
 
 const SSL_CRT_FILE = process.env.SSL_CRT_FILE || "../cert/localhost+2.pem"; // your certificate file
@@ -27,7 +27,7 @@ const sslOptions = {
   key: fs.readFileSync(SSL_KEY_FILE),
   cert: fs.readFileSync(SSL_CRT_FILE),
 };
-const server = https.createServer(sslOptions, app);
+// const server = https.createServer(sslOptions, app);
 
 const io = new Server(server, {
   cors: {
