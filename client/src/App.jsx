@@ -105,7 +105,7 @@ const App = () => {
       });
       peerRef.current = peer;
 
-      // Generate the signal data
+      // Generate my signal data
       peer.on("signal", (data) => {
         // data: contains the signal data to send
         console.log(data);
@@ -121,7 +121,7 @@ const App = () => {
 
       // jisko maine call kia usne call accept kar lia
       socket.on("callAccepted", ({ signalData }) => {
-        console.log("Call accepted, storing the signal Data");
+        console.log("Call accepted, storing the Remote signal Data");
         // store the signaling data received from the remote peer
         peer.signal(signalData);
         console.log(signalData);
@@ -175,6 +175,7 @@ const App = () => {
     });
     peerRef.current = peer;
 
+    // Generate my signal data
     peer.on("signal", (data) => {
       console.log("Signaling back to caller");
       socket.emit("acceptingCall", {
@@ -187,8 +188,11 @@ const App = () => {
 
     peer.on("error", handlePeerError);
     console.log("Incomming call: " + signalData);
+    // store the signaling data received from the remote peer
     peer.signal(signalData);
+    // who called me
     setCallerID(from);
+    // Im in call right now
     setIsInCall(true);
   };
 
