@@ -119,8 +119,9 @@ const App = () => {
 
       peer.on("stream", handleRemoteStream);
 
+      // jisko maine call kia usne call accept kar lia
       socket.on("callAccepted", ({ signalData }) => {
-        console.log("Call accepted, signaling peer");
+        console.log("Call accepted, storing the signal Data");
         // store the signaling data received from the remote peer
         peer.signal(signalData);
         console.log(signalData);
